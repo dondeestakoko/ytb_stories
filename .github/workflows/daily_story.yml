@@ -2,8 +2,8 @@ name: Daily Story Generator (YouTube + TikTok)
 
 on:
   schedule:
-    # Automatically mutated to a new random hour & minute after every daily run
-    - cron: '30 20 * * *'
+    # Triggers daily; the job sleeps a random 5-180 minutes before posting so every day's upload time is unique
+    - cron: '15 13 * * *'
   workflow_dispatch:
     inputs:
       custom_theme:
@@ -21,8 +21,8 @@ permissions:
 
 jobs:
   generate-and-publish:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
 
     steps:
       - name: Checkout repository
@@ -47,11 +47,12 @@ jobs:
             playwright install chromium --with-deps
           fi
 
-      - name: Random anti-detection delay (only on scheduled cron runs)
+      - name: Random anti-detection delay (only on scheduled daily runs)
         if: github.event_name == 'schedule'
         run: |
-          DELAY_SEC=$(( 60 + RANDOM % 1140 ))
-          echo "Sleeping for ${DELAY_SEC} seconds (~$(( DELAY_SEC / 60 )) mins) to add natural timing jitter..."
+          # Sleep between 5 minutes (300s) and 180 minutes (10800s) so daily posts happen at organic, unpredictable times
+          DELAY_SEC=$(( 300 + (RANDOM * RANDOM) % 10500 ))
+          echo "Sleeping for ${DELAY_SEC} seconds (~$(( DELAY_SEC / 60 )) mins) to randomize today's post time..."
           sleep "${DELAY_SEC}"
 
       - name: Run Master Story Generation & Dual Upload Script
@@ -88,19 +89,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: daily-story-${{ github.run_number }}
+          if-no-files-found: ignore
           path: |
             output/final_story_youtube_16x9.mp4
             output/final_story_tiktok_9x16.mp4
             output/subtitles.srt
             output/metadata.json
           retention-days: 7
-
-      - name: Randomize cron schedule for tomorrow (different post time every day)
-        if: always()
-        run: |
-          python scripts/randomize_cron.py
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/daily_story.yml
-          git diff --staged --quiet || git commit -m "chore(schedule): randomize next daily post time [skip ci]"
-          git push

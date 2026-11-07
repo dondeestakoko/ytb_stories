@@ -4,7 +4,13 @@ from typing import List, Literal
 import requests
 from pydantic import BaseModel, Field
 
-from src.config import GEMINI_API_KEY, GEMINI_MODEL, OUTPUT_DIR, get_daily_story_seed_theme
+from src.config import (
+    GEMINI_API_KEY,
+    GEMINI_MODEL,
+    OUTPUT_DIR,
+    POLLINATIONS_API_KEY,
+    get_daily_story_seed_theme,
+)
 
 
 class StoryScene(BaseModel):
@@ -184,15 +190,44 @@ def _call_gemini_interactions_rest(user_input: str) -> str:
 
         time.sleep(2)
 
+    # 3. Fallback to Pollinations Chat Completions (`gen.pollinations.ai`) if POLLINATIONS_API_KEY is available
+    if POLLINATIONS_API_KEY:
+        schema_prompt = (
+            f"{user_input}\n\nReturn ONLY valid JSON matching this schema:\n"
+            + json.dumps(StoryPackage.model_json_schema())
+        )
+        try:
+            polli_resp = requests.post(
+                "https://gen.pollinations.ai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {POLLINATIONS_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "google/gemini-3.8-flash,google/gemini-3.5-flash-lite,openai/gpt-5.4-nano",
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_INSTRUCTION},
+                        {"role": "user", "content": schema_prompt},
+                    ],
+                    "response_format": {"type": "json_object"},
+                },
+                timeout=60,
+            )
+            if polli_resp.status_code == 200:
+                return polli_resp.json()["choices"][0]["message"]["content"]
+            last_error = f"Pollinations Chat HTTP {polli_resp.status_code}: {polli_resp.text[:300]}"
+        except requests.RequestException as exc:
+            last_error = f"Pollinations Chat network error: {exc}"
+
     raise RuntimeError(f"Gemini API call failed across all models: {last_error}")
 
 
 def generate_story_package(custom_theme: str | None = None) -> StoryPackage:
-    """Calls Gemini using google-genai Interactions API (with automatic model fallback on 503)."""
-    if not GEMINI_API_KEY:
+    """Calls Gemini using google-genai Interactions API (with automatic model & Pollinations fallback)."""
+    if not (GEMINI_API_KEY or POLLINATIONS_API_KEY):
         raise ValueError(
-            "Missing GEMINI_API_KEY. Get a free API key at https://aistudio.google.com/apikey "
-            "and set it in your .env file or GitHub Actions Secrets."
+            "Missing GEMINI_API_KEY (and POLLINATIONS_API_KEY). Get a free API key at "
+            "https://aistudio.google.com/apikey and set it in your .env file or GitHub Actions Secrets."
         )
 
     theme_prompt = get_daily_story_seed_theme(custom_theme)
