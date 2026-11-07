@@ -218,3 +218,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Story pipeline outputs & OAuth secrets
+output/
+*.mp4
+*.mp3
+*.srt
+client_secrets.json
+cookies.txt
