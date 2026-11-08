@@ -43,7 +43,8 @@ YOUTUBE_CLIENT_ID = os.getenv("YOUTUBE_CLIENT_ID", "").strip()
 YOUTUBE_CLIENT_SECRET = os.getenv("YOUTUBE_CLIENT_SECRET", "").strip()
 YOUTUBE_REFRESH_TOKEN = os.getenv("YOUTUBE_REFRESH_TOKEN", "").strip()
 YOUTUBE_PRIVACY_STATUS = os.getenv("YOUTUBE_PRIVACY_STATUS", "public").strip()
-YOUTUBE_MADE_FOR_KIDS = os.getenv("YOUTUBE_MADE_FOR_KIDS", "true").strip().lower() == "true"
+YOUTUBE_MADE_FOR_KIDS = os.getenv("YOUTUBE_MADE_FOR_KIDS", "false").strip().lower() == "true"
+YOUTUBE_UPLOAD_SHORT = os.getenv("YOUTUBE_UPLOAD_SHORT", "true").strip().lower() == "true"
 
 # TikTok Upload settings
 TIKTOK_UPLOAD_MODE = os.getenv("TIKTOK_UPLOAD_MODE", "auto").strip().lower()

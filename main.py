@@ -8,7 +8,7 @@ from src.story_generator import StoryPackage, StoryScene, generate_story_package
 from src.tiktok_uploader_client import upload_to_tiktok
 from src.tts_generator import generate_narration_and_subtitles
 from src.video_maker import stitch_dual_videos
-from src.youtube_uploader import upload_to_youtube
+from src.youtube_uploader import upload_both_to_youtube
 
 
 def _get_sample_story_package() -> StoryPackage:
@@ -166,20 +166,20 @@ def main() -> int:
         scene_audios=scene_audios,
     )
 
-    # Step 5: Upload simultaneously to YouTube and TikTok
+    # Step 5: Upload simultaneously to YouTube (Normal 16:9 + Short 9:16) and TikTok (9:16)
     if args.skip_upload:
         print("[5/5] Skipping upload (--skip-upload enabled).")
     else:
-        print("[5/5] Uploading simultaneously to YouTube (16:9) and TikTok (9:16)...")
+        print("[5/5] Uploading to YouTube (Normal 16:9 + Short 9:16) and TikTok (9:16)...")
         with ThreadPoolExecutor(max_workers=2) as executor:
-            yt_future = executor.submit(upload_to_youtube, youtube_mp4, story_pkg)
+            yt_future = executor.submit(upload_both_to_youtube, youtube_mp4, tiktok_mp4, story_pkg)
             tt_future = executor.submit(upload_to_tiktok, tiktok_mp4, story_pkg)
 
             try:
-                yt_result = yt_future.result()
+                yt_normal_url, yt_short_url = yt_future.result()
             except Exception as exc:
                 print(f"      [YouTube ERROR] {exc}")
-                yt_result = None
+                yt_normal_url, yt_short_url = None, None
 
             try:
                 tt_result = tt_future.result()
@@ -187,7 +187,11 @@ def main() -> int:
                 print(f"      [TikTok ERROR] {exc}")
                 tt_result = None
 
-        print(f"      Summary -> YouTube: {yt_result or 'Not uploaded'} | TikTok: {tt_result or 'Not uploaded'}")
+        print(
+            f"      Summary -> YouTube Normal: {yt_normal_url or 'Not uploaded'} | "
+            f"YouTube Short: {yt_short_url or 'Not uploaded'} | "
+            f"TikTok: {tt_result or 'Not uploaded'}"
+        )
 
     print("=" * 72)
     print("  PIPELINE FINISHED SUCCESSFULLY!")

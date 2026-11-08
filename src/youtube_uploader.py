@@ -9,6 +9,7 @@ from src.config import (
     YOUTUBE_MADE_FOR_KIDS,
     YOUTUBE_PRIVACY_STATUS,
     YOUTUBE_REFRESH_TOKEN,
+    YOUTUBE_UPLOAD_SHORT,
 )
 from src.story_generator import StoryPackage
 
@@ -40,24 +41,52 @@ def refresh_youtube_access_token() -> str:
     return token_data["access_token"]
 
 
-def upload_to_youtube(video_path: Path, story_pkg: StoryPackage) -> str | None:
-    """Uploads the 16:9 story video to YouTube Data API v3 using Resumable Upload (1,600 quota units)."""
+def upload_to_youtube(
+    video_path: Path,
+    story_pkg: StoryPackage,
+    is_short: bool = False,
+    access_token: str | None = None,
+) -> str | None:
+    """
+    Uploads a story video to YouTube Data API v3 using Resumable Upload (1,600 quota units).
+    - When `is_short=False`: uploads the normal 16:9 horizontal video.
+    - When `is_short=True`: uploads the 9:16 vertical video as a YouTube Short (#Shorts).
+    - Sets `selfDeclaredMadeForKids` (default False = 'Non, elle n'est pas conçue pour les enfants'
+      and no 18+ age restriction, preserving comments and monetization).
+    """
     if not (YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET and YOUTUBE_REFRESH_TOKEN):
         print("      [YouTube] Skipping upload: YouTube OAuth credentials not configured.")
         return None
 
-    print(f"      [YouTube] Refreshing OAuth2 token and uploading {video_path.name}...")
-    access_token = refresh_youtube_access_token()
+    label = "YouTube Short (9:16)" if is_short else "YouTube Normal Video (16:9)"
+    if not access_token:
+        print(f"      [{label}] Refreshing OAuth2 token...")
+        access_token = refresh_youtube_access_token()
+
+    print(f"      [{label}] Uploading {video_path.name} (selfDeclaredMadeForKids={YOUTUBE_MADE_FOR_KIDS})...")
+
+    base_title = story_pkg.title.strip()
+    if is_short:
+        if "#shorts" not in base_title.lower():
+            title = f"{base_title[:91].rstrip()} #Shorts"
+        else:
+            title = base_title[:100]
+        hashtags = "#Shorts #Storytime #MoralStories #BedtimeStories #AnimatedStory #Fables"
+        tags = list(dict.fromkeys(["Shorts", "YouTube Shorts"] + story_pkg.youtube_tags))[:20]
+    else:
+        title = base_title[:100]
+        hashtags = "#Storytime #MoralStories #BedtimeStories #AnimatedStory #Fables"
+        tags = story_pkg.youtube_tags[:20]
 
     metadata = {
         "snippet": {
-            "title": story_pkg.title[:100],
+            "title": title,
             "description": (
                 f"{story_pkg.youtube_description}\n\n"
                 f"Moral of the story: {story_pkg.moral}\n\n"
-                "#KidsStories #BedtimeStories #MoralStories #ChildrensStory"
+                f"{hashtags}"
             ),
-            "tags": story_pkg.youtube_tags[:20],
+            "tags": tags,
             "categoryId": "1",  # 1 = Film & Animation
             "defaultLanguage": "en",
             "defaultAudioLanguage": "en",
@@ -131,6 +160,45 @@ def upload_to_youtube(video_path: Path, story_pkg: StoryPackage) -> str | None:
         raise RuntimeError(f"YouTube upload finished without video ID: {response_json}")
 
     video_id = response_json["id"]
-    video_url = f"https://www.youtube.com/watch?v={video_id}"
-    print(f"      [YouTube] Successfully uploaded! URL: {video_url}")
+    video_url = (
+        f"https://www.youtube.com/shorts/{video_id}"
+        if is_short
+        else f"https://www.youtube.com/watch?v={video_id}"
+    )
+    print(f"      [{label}] Successfully uploaded! URL: {video_url}")
     return video_url
+
+
+def upload_both_to_youtube(
+    normal_video_path: Path,
+    short_video_path: Path,
+    story_pkg: StoryPackage,
+) -> tuple[str | None, str | None]:
+    """
+    Uploads BOTH:
+      1. The 16:9 horizontal video as a normal YouTube video.
+      2. The 9:16 vertical video as a YouTube Short (#Shorts).
+    Reuses a single OAuth access_token refresh across both uploads.
+    """
+    if not (YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET and YOUTUBE_REFRESH_TOKEN):
+        print("      [YouTube] Skipping upload: YouTube OAuth credentials not configured.")
+        return None, None
+
+    access_token = refresh_youtube_access_token()
+    normal_url = upload_to_youtube(
+        video_path=normal_video_path,
+        story_pkg=story_pkg,
+        is_short=False,
+        access_token=access_token,
+    )
+
+    short_url = None
+    if YOUTUBE_UPLOAD_SHORT:
+        short_url = upload_to_youtube(
+            video_path=short_video_path,
+            story_pkg=story_pkg,
+            is_short=True,
+            access_token=access_token,
+        )
+
+    return normal_url, short_url

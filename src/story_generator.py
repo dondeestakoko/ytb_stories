@@ -53,7 +53,7 @@ class StoryPackage(BaseModel):
         description="Engaging YouTube video description including a story summary, moral, and hashtags."
     )
     youtube_tags: List[str] = Field(
-        description="10 to 15 relevant SEO tags for YouTube (e.g., kids story, bedtime story, moral stories)."
+        description="10 to 15 relevant SEO tags for YouTube (e.g., bedtime story, moral stories, animated fable, storytime)."
     )
     tiktok_caption: str = Field(
         description="Short, punchy TikTok caption with 5-8 trending storytelling hashtags (under 300 chars)."

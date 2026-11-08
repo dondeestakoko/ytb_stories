@@ -68,7 +68,8 @@ jobs:
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           YOUTUBE_PRIVACY_STATUS: public
-          YOUTUBE_MADE_FOR_KIDS: 'true'
+          YOUTUBE_MADE_FOR_KIDS: 'false'
+          YOUTUBE_UPLOAD_SHORT: 'true'
           TIKTOK_UPLOAD_MODE: auto
           TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
           TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
