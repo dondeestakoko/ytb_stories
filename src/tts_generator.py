@@ -5,7 +5,7 @@ from typing import List
 import edge_tts
 from moviepy.editor import AudioFileClip
 
-from src.config import AUDIO_DIR, OUTPUT_DIR, TTS_RATE, TTS_VOICE
+from src.config import AUDIO_DIR, OUTPUT_DIR, TTS_RATE, TTS_VOICE, TTS_VOICE_FR
 from src.story_generator import StoryPackage
 
 
@@ -65,8 +65,9 @@ async def _synthesize_scene_async(
     text: str,
     voice: str,
     rate: str,
+    lang: str = "en",
 ) -> SceneAudioResult:
-    audio_path = AUDIO_DIR / f"scene_{scene_number}.mp3"
+    audio_path = AUDIO_DIR / f"scene_{scene_number}_{lang}.mp3"
     communicate = edge_tts.Communicate(text=text, voice=voice, rate=rate)
 
     word_events: List[tuple[float, float, str]] = []
@@ -110,30 +111,47 @@ async def _synthesize_scene_async(
     )
 
 
-async def _generate_all_audio_async(story_pkg: StoryPackage) -> List[SceneAudioResult]:
+async def _generate_all_audio_async(
+    story_pkg: StoryPackage,
+    lang: str = "en",
+) -> List[SceneAudioResult]:
+    voice = TTS_VOICE_FR if lang == "fr" else TTS_VOICE
     results: List[SceneAudioResult] = []
     for scene in story_pkg.scenes:
+        narration_text = (
+            getattr(scene, "narration_fr", "") or scene.narration
+            if lang == "fr"
+            else scene.narration
+        )
         res = await _synthesize_scene_async(
             scene_number=scene.scene_number,
-            text=scene.narration,
-            voice=TTS_VOICE,
+            text=narration_text,
+            voice=voice,
             rate=TTS_RATE,
+            lang=lang,
         )
         print(
-            f"      Scene {scene.scene_number} audio: {res.duration:.2f}s "
+            f"      [{lang.upper()}] Scene {scene.scene_number} audio: {res.duration:.2f}s "
             f"({len(res.subtitles)} subtitle cues) -> {res.audio_path.name}"
         )
         results.append(res)
     return results
 
 
-def generate_narration_and_subtitles(story_pkg: StoryPackage) -> tuple[List[SceneAudioResult], Path]:
-    """Generates MP3 audio for all 6 scenes using free edge-tts and writes an .srt file."""
-    print(f"[2/5] Synthesizing voice narration with edge-tts (voice={TTS_VOICE}, rate={TTS_RATE})...")
-    scene_audios = asyncio.run(_generate_all_audio_async(story_pkg))
+def generate_narration_and_subtitles(
+    story_pkg: StoryPackage,
+    lang: str = "en",
+) -> tuple[List[SceneAudioResult], Path]:
+    """Generates MP3 audio for all 6 scenes using free edge-tts (EN or FR) and writes an .srt file."""
+    voice = TTS_VOICE_FR if lang == "fr" else TTS_VOICE
+    print(
+        f"[2/5] Synthesizing [{lang.upper()}] voice narration with edge-tts "
+        f"(voice={voice}, rate={TTS_RATE})..."
+    )
+    scene_audios = asyncio.run(_generate_all_audio_async(story_pkg, lang=lang))
 
-    # Write global SRT file across all scenes
-    srt_path = OUTPUT_DIR / "subtitles.srt"
+    srt_filename = "subtitles.srt" if lang == "en" else f"subtitles_{lang}.srt"
+    srt_path = OUTPUT_DIR / srt_filename
     srt_lines: List[str] = []
     cue_index = 1
     global_offset = 0.0
@@ -151,5 +169,5 @@ def generate_narration_and_subtitles(story_pkg: StoryPackage) -> tuple[List[Scen
 
     srt_path.write_text("\n".join(srt_lines), encoding="utf-8")
     total_duration = sum(s.duration for s in scene_audios)
-    print(f"      Total narration duration: {total_duration:.2f}s | SRT saved to {srt_path}")
+    print(f"      [{lang.upper()}] Total narration duration: {total_duration:.2f}s | SRT saved to {srt_path}")
     return scene_audios, srt_path

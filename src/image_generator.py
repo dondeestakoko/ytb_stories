@@ -29,9 +29,9 @@ class SceneImages:
     tiktok_9x16_path: Path
 
 
-def _story_seed(title: str, scene_number: int) -> int:
-    """Deterministic seed per story so character style remains cohesive across scenes."""
-    digest = hashlib.sha256(f"{title}:{scene_number}".encode("utf-8")).hexdigest()
+def _story_seed(title: str) -> int:
+    """Locks a SINGLE deterministic seed per story so character face, outfit, and style stay consistent across all 6 scenes."""
+    digest = hashlib.sha256(title.encode("utf-8")).hexdigest()
     return int(digest[:8], 16) % 1_000_000
 
 
@@ -157,33 +157,38 @@ def _fetch_single_image(prompt: str, target_size: tuple[int, int], seed: int) ->
 
 
 def generate_scene_images(story_pkg: StoryPackage) -> List[SceneImages]:
-    """Generates both 16:9 (YouTube) and 9:16 (TikTok) illustrations for all 6 scenes."""
+    """Generates both 16:9 (YouTube) and 9:16 (TikTok/Shorts) illustrations for all 6 scenes with a locked seed & Character DNA."""
+    locked_seed = _story_seed(story_pkg.title)
     print(
         f"[3/5] Generating 6 scene illustrations in dual aspect ratios (16:9 & 9:16) "
-        f"via {IMAGE_PROVIDER} ({POLLINATIONS_IMAGE_MODEL})..."
+        f"via {IMAGE_PROVIDER} ({POLLINATIONS_IMAGE_MODEL}, locked_seed={locked_seed})..."
     )
     results: List[SceneImages] = []
 
     for scene in story_pkg.scenes:
-        seed = _story_seed(story_pkg.title, scene.scene_number)
-        full_prompt = f"{story_pkg.character_visual_anchor}. {scene.visual_prompt}"
+        full_prompt = (
+            f"Consistent character design: {story_pkg.character_visual_anchor}. "
+            f"Consistent world & palette: {story_pkg.world_visual_anchor}. "
+            f"Current scene action: {scene.visual_prompt}. "
+            "Identical protagonist face, colors, and outfit, cute 3D Pixar storybook illustration"
+        )
 
         yt_path = IMAGES_16X9_DIR / f"scene_{scene.scene_number}_16x9.png"
         tt_path = IMAGES_9X16_DIR / f"scene_{scene.scene_number}_9x16.png"
 
-        print(f"      Scene {scene.scene_number}/6: Generating 16:9 YouTube image...")
+        print(f"      Scene {scene.scene_number}/6: Generating 16:9 YouTube image (seed={locked_seed})...")
         yt_img = _fetch_single_image(
             prompt=f"{full_prompt}, wide cinematic 16:9 composition",
             target_size=YOUTUBE_SIZE,
-            seed=seed,
+            seed=locked_seed,
         )
         yt_img.save(yt_path, format="PNG")
 
-        print(f"      Scene {scene.scene_number}/6: Generating 9:16 TikTok image...")
+        print(f"      Scene {scene.scene_number}/6: Generating 9:16 Vertical image (seed={locked_seed})...")
         tt_img = _fetch_single_image(
             prompt=f"{full_prompt}, vertical portrait 9:16 centered composition",
             target_size=TIKTOK_SIZE,
-            seed=seed + 100,
+            seed=locked_seed,
         )
         tt_img.save(tt_path, format="PNG")
 
@@ -195,5 +200,5 @@ def generate_scene_images(story_pkg: StoryPackage) -> List[SceneImages]:
             )
         )
 
-    print("      All 12 images (6x 16:9 + 6x 9:16) saved.")
+    print("      All 12 images (6x 16:9 + 6x 9:16) saved with locked character consistency.")
     return results

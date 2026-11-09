@@ -225,38 +225,46 @@ def stitch_dual_videos(
     story_pkg: StoryPackage,
     scene_images: List[SceneImages],
     scene_audios: List[SceneAudioResult],
+    lang: str = "en",
 ) -> Tuple[Path, Path]:
     """
     Renders both:
-      1. final_story_youtube_16x9.mp4 (1920x1080 Horizontal for YouTube)
-      2. final_story_tiktok_9x16.mp4  (1080x1920 Vertical for TikTok)
+      1. 16:9 Horizontal video for YouTube Normal Video (`final_story[_fr]_youtube_16x9.mp4`)
+      2. 9:16 Vertical video for YouTube Shorts & TikTok (`final_story[_fr]_tiktok_9x16.mp4`)
     """
-    print("[4/5] Stitching dual videos with MoviePy (Ken Burns effect + burned-in subtitles)...")
+    suffix = "" if lang == "en" else f"_{lang}"
+    yt_filename = f"final_story{suffix}_youtube_16x9.mp4"
+    tt_filename = f"final_story{suffix}_tiktok_9x16.mp4"
 
-    print(f"      -> Rendering YouTube 16:9 video ({YOUTUBE_SIZE[0]}x{YOUTUBE_SIZE[1]})...")
+    print(
+        f"[4/5] Stitching [{lang.upper()}] dual videos with MoviePy "
+        "(Ken Burns effect + burned-in subtitles)..."
+    )
+
+    print(f"      -> Rendering [{lang.upper()}] YouTube 16:9 video ({YOUTUBE_SIZE[0]}x{YOUTUBE_SIZE[1]})...")
     youtube_video_path = _render_complete_video(
         story_pkg=story_pkg,
         scene_images=scene_images,
         scene_audios=scene_audios,
         target_size=YOUTUBE_SIZE,
-        output_filename="final_story_youtube_16x9.mp4",
+        output_filename=yt_filename,
         use_vertical=False,
     )
 
-    print(f"      -> Rendering TikTok 9:16 video ({TIKTOK_SIZE[0]}x{TIKTOK_SIZE[1]})...")
+    print(f"      -> Rendering [{lang.upper()}] Vertical 9:16 video ({TIKTOK_SIZE[0]}x{TIKTOK_SIZE[1]})...")
     tiktok_video_path = _render_complete_video(
         story_pkg=story_pkg,
         scene_images=scene_images,
         scene_audios=scene_audios,
         target_size=TIKTOK_SIZE,
-        output_filename="final_story_tiktok_9x16.mp4",
+        output_filename=tt_filename,
         use_vertical=True,
     )
 
-    # Also copy the 16:9 video to final_story.mp4 for compatibility with the original spec
-    legacy_path = OUTPUT_DIR / "final_story.mp4"
-    legacy_path.write_bytes(youtube_video_path.read_bytes())
+    if lang == "en":
+        legacy_path = OUTPUT_DIR / "final_story.mp4"
+        legacy_path.write_bytes(youtube_video_path.read_bytes())
 
-    print(f"      YouTube video ready: {youtube_video_path}")
-    print(f"      TikTok video ready:  {tiktok_video_path}")
+    print(f"      [{lang.upper()}] YouTube 16:9 video ready: {youtube_video_path}")
+    print(f"      [{lang.upper()}] Vertical 9:16 video ready: {tiktok_video_path}")
     return youtube_video_path, tiktok_video_path

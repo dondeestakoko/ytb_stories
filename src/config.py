@@ -7,13 +7,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BASE_DIR / "data"
+STORY_HISTORY_FILE = DATA_DIR / "story_history.json"
 OUTPUT_DIR = BASE_DIR / "output"
 AUDIO_DIR = OUTPUT_DIR / "audio"
 IMAGES_16X9_DIR = OUTPUT_DIR / "images_16x9"
 IMAGES_9X16_DIR = OUTPUT_DIR / "images_9x16"
 
 # Ensure directories exist
-for directory in (OUTPUT_DIR, AUDIO_DIR, IMAGES_16X9_DIR, IMAGES_9X16_DIR):
+for directory in (DATA_DIR, OUTPUT_DIR, AUDIO_DIR, IMAGES_16X9_DIR, IMAGES_9X16_DIR):
     directory.mkdir(parents=True, exist_ok=True)
 
 # Gemini LLM settings (gemini-3.8-flash is the current recommended Flash model)
@@ -21,8 +23,15 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip()
 
 # Edge-TTS settings (100% Free, no API key needed)
+# Slower pace (-10%) makes simple sentences much easier for kids & language learners to follow
 TTS_VOICE = os.getenv("TTS_VOICE", "en-US-AriaNeural").strip()
-TTS_RATE = os.getenv("TTS_RATE", "-5%").strip()
+TTS_VOICE_FR = os.getenv("TTS_VOICE_FR", "fr-FR-DeniseNeural").strip()
+TTS_RATE = os.getenv("TTS_RATE", "-10%").strip()
+STORY_LANGUAGES = [
+    lang.strip().lower()
+    for lang in os.getenv("STORY_LANGUAGES", "en,fr").split(",")
+    if lang.strip()
+]
 
 # Image generation settings (Pollinations Gen API: https://gen.pollinations.ai)
 IMAGE_PROVIDER = os.getenv("IMAGE_PROVIDER", "pollinations").strip().lower()

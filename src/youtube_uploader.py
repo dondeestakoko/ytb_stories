@@ -46,9 +46,11 @@ def upload_to_youtube(
     story_pkg: StoryPackage,
     is_short: bool = False,
     access_token: str | None = None,
+    lang: str = "en",
 ) -> str | None:
     """
     Uploads a story video to YouTube Data API v3 using Resumable Upload (1,600 quota units).
+    - Supports both English (`lang='en'`) and French (`lang='fr'`).
     - When `is_short=False`: uploads the normal 16:9 horizontal video.
     - When `is_short=True`: uploads the 9:16 vertical video as a YouTube Short (#Shorts).
     - Sets `selfDeclaredMadeForKids` (default False = 'Non, elle n'est pas conçue pour les enfants'
@@ -58,38 +60,51 @@ def upload_to_youtube(
         print("      [YouTube] Skipping upload: YouTube OAuth credentials not configured.")
         return None
 
-    label = "YouTube Short (9:16)" if is_short else "YouTube Normal Video (16:9)"
+    lang_code = "fr" if lang == "fr" else "en"
+    label = f"YouTube [{lang_code.upper()}] Short (9:16)" if is_short else f"YouTube [{lang_code.upper()}] Normal Video (16:9)"
     if not access_token:
         print(f"      [{label}] Refreshing OAuth2 token...")
         access_token = refresh_youtube_access_token()
 
     print(f"      [{label}] Uploading {video_path.name} (selfDeclaredMadeForKids={YOUTUBE_MADE_FOR_KIDS})...")
 
-    base_title = story_pkg.title.strip()
+    if lang_code == "fr":
+        base_title = (getattr(story_pkg, "title_fr", "") or story_pkg.title).strip()
+        desc_text = getattr(story_pkg, "youtube_description_fr", "") or story_pkg.youtube_description
+        moral_line = f"Morale de l'histoire : {getattr(story_pkg, 'moral_fr', '') or story_pkg.moral}"
+        base_tags = getattr(story_pkg, "youtube_tags_fr", None) or story_pkg.youtube_tags
+        base_hashtags = "#Histoire #Conte #Morale #HistoireDuSoir #FableAnimee"
+    else:
+        base_title = story_pkg.title.strip()
+        desc_text = story_pkg.youtube_description
+        moral_line = f"Moral of the story: {story_pkg.moral}"
+        base_tags = story_pkg.youtube_tags
+        base_hashtags = "#Storytime #MoralStories #BedtimeStories #AnimatedStory #Fables"
+
     if is_short:
         if "#shorts" not in base_title.lower():
             title = f"{base_title[:91].rstrip()} #Shorts"
         else:
             title = base_title[:100]
-        hashtags = "#Shorts #Storytime #MoralStories #BedtimeStories #AnimatedStory #Fables"
-        tags = list(dict.fromkeys(["Shorts", "YouTube Shorts"] + story_pkg.youtube_tags))[:20]
+        hashtags = f"#Shorts {base_hashtags}"
+        tags = list(dict.fromkeys(["Shorts", "YouTube Shorts"] + base_tags))[:20]
     else:
         title = base_title[:100]
-        hashtags = "#Storytime #MoralStories #BedtimeStories #AnimatedStory #Fables"
-        tags = story_pkg.youtube_tags[:20]
+        hashtags = base_hashtags
+        tags = base_tags[:20]
 
     metadata = {
         "snippet": {
             "title": title,
             "description": (
-                f"{story_pkg.youtube_description}\n\n"
-                f"Moral of the story: {story_pkg.moral}\n\n"
+                f"{desc_text}\n\n"
+                f"{moral_line}\n\n"
                 f"{hashtags}"
             ),
             "tags": tags,
             "categoryId": "1",  # 1 = Film & Animation
-            "defaultLanguage": "en",
-            "defaultAudioLanguage": "en",
+            "defaultLanguage": lang_code,
+            "defaultAudioLanguage": lang_code,
         },
         "status": {
             "privacyStatus": YOUTUBE_PRIVACY_STATUS,
@@ -173,23 +188,28 @@ def upload_both_to_youtube(
     normal_video_path: Path,
     short_video_path: Path,
     story_pkg: StoryPackage,
+    lang: str = "en",
+    access_token: str | None = None,
 ) -> tuple[str | None, str | None]:
     """
-    Uploads BOTH:
+    Uploads BOTH for a given language (`en` or `fr`):
       1. The 16:9 horizontal video as a normal YouTube video.
       2. The 9:16 vertical video as a YouTube Short (#Shorts).
-    Reuses a single OAuth access_token refresh across both uploads.
+    Reuses a single OAuth access_token refresh across uploads.
     """
     if not (YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET and YOUTUBE_REFRESH_TOKEN):
         print("      [YouTube] Skipping upload: YouTube OAuth credentials not configured.")
         return None, None
 
-    access_token = refresh_youtube_access_token()
+    if not access_token:
+        access_token = refresh_youtube_access_token()
+
     normal_url = upload_to_youtube(
         video_path=normal_video_path,
         story_pkg=story_pkg,
         is_short=False,
         access_token=access_token,
+        lang=lang,
     )
 
     short_url = None
@@ -199,6 +219,7 @@ def upload_both_to_youtube(
             story_pkg=story_pkg,
             is_short=True,
             access_token=access_token,
+            lang=lang,
         )
 
     return normal_url, short_url
