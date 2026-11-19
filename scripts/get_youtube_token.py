@@ -129,12 +129,18 @@ def main() -> None:
 
     print("\n" + "=" * 70)
     print("SUCCESS! Saved YOUTUBE_REFRESH_TOKEN to .env!")
-    print("Copy these 3 values into your GitHub Repository Secrets:")
+    print("Syncing updated YOUTUBE_REFRESH_TOKEN to GitHub Actions Secrets...")
     print("=" * 70)
-    print(f"YOUTUBE_CLIENT_ID={client_id}")
-    print(f"YOUTUBE_CLIENT_SECRET={client_secret}")
-    print(f"YOUTUBE_REFRESH_TOKEN={refresh_token}")
-    print("=" * 70)
+    try:
+        import subprocess
+        import sys
+
+        sync_script = Path(__file__).resolve().parent / "sync_github_secrets.py"
+        subprocess.run([sys.executable, str(sync_script)], check=True)
+        print("\n✅ GitHub Actions secret YOUTUBE_REFRESH_TOKEN updated automatically!")
+    except Exception as sync_err:
+        print(f"\n[Note] Could not auto-sync to GitHub Secrets ({sync_err}).")
+        print("You can run `python scripts/sync_github_secrets.py` manually.")
 
 
 if __name__ == "__main__":

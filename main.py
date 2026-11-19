@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from src.config import STORY_LANGUAGES
+from src.config import STORY_LANGUAGES, YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN
 from src.image_generator import generate_scene_images
 from src.story_generator import StoryPackage, StoryScene, generate_story_package
 from src.tiktok_uploader_client import upload_to_tiktok
@@ -229,27 +229,38 @@ def main() -> int:
         print("[5/5] Skipping upload (--skip-upload enabled).")
     else:
         print(f"[5/5] Uploading videos for languages {STORY_LANGUAGES} to YouTube (Normal + Short) and TikTok...")
+        yt_configured = bool(YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET and YOUTUBE_REFRESH_TOKEN)
+        yt_uploaded_count = 0
+        yt_errors: list[str] = []
+
         try:
             yt_access_token = refresh_youtube_access_token()
         except Exception as exc:
-            print(f"      [YouTube Auth Warning] {exc}")
+            print(f"      [YouTube Auth ERROR] {exc}")
+            yt_errors.append(str(exc))
             yt_access_token = None
 
-        for lang, (yt_mp4, tt_mp4, _) in rendered_videos.items():
-            try:
-                normal_url, short_url = upload_both_to_youtube(
-                    normal_video_path=yt_mp4,
-                    short_video_path=tt_mp4,
-                    story_pkg=story_pkg,
-                    lang=lang,
-                    access_token=yt_access_token,
-                )
-                print(
-                    f"      [{lang.upper()} YouTube Summary] Normal: {normal_url or 'Not uploaded'} | "
-                    f"Short: {short_url or 'Not uploaded'}"
-                )
-            except Exception as exc:
-                print(f"      [{lang.upper()} YouTube ERROR] {exc}")
+        if yt_access_token:
+            for lang, (yt_mp4, tt_mp4, _) in rendered_videos.items():
+                try:
+                    normal_url, short_url = upload_both_to_youtube(
+                        normal_video_path=yt_mp4,
+                        short_video_path=tt_mp4,
+                        story_pkg=story_pkg,
+                        lang=lang,
+                        access_token=yt_access_token,
+                    )
+                    if normal_url:
+                        yt_uploaded_count += 1
+                    if short_url:
+                        yt_uploaded_count += 1
+                    print(
+                        f"      [{lang.upper()} YouTube Summary] Normal: {normal_url or 'Not uploaded'} | "
+                        f"Short: {short_url or 'Not uploaded'}"
+                    )
+                except Exception as exc:
+                    print(f"      [{lang.upper()} YouTube ERROR] {exc}")
+                    yt_errors.append(f"[{lang.upper()}] {exc}")
 
         # Upload primary vertical video to TikTok
         first_lang = STORY_LANGUAGES[0]
@@ -258,6 +269,12 @@ def main() -> int:
             print(f"      [TikTok Summary] {tt_result or 'Not uploaded'}")
         except Exception as exc:
             print(f"      [TikTok ERROR] {exc}")
+
+        if yt_configured and yt_uploaded_count == 0:
+            raise RuntimeError(
+                "YouTube credentials are configured, but 0 videos were uploaded to YouTube. "
+                f"Errors: {'; '.join(yt_errors)}"
+            )
 
     print("=" * 76)
     print("  PIPELINE FINISHED SUCCESSFULLY!")
