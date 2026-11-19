@@ -122,7 +122,7 @@ CRITICAL RULES YOU MUST FOLLOW:
    - Every single scene's `visual_prompt` MUST copy the protagonist's exact physical description from `character_visual_anchor` so the image generator draws the exact same character in scenes 1 through 6.
    - Never include text, letters, speech bubbles, or watermarks in `visual_prompt`.
 3. NEVER REPEAT PAST STORIES:
-   - Invent a completely fresh protagonist, animal/magical creature, name, setting, problem, and moral lesson that does NOT overlap with any story in the provided history blocklist.
+   - Invent a completely fresh protagonist, animal/magical/Mythical creature, name, setting, problem, and moral lesson that does NOT overlap with any story in the provided history blocklist.
 4. Vary `camera_motion` across scenes (`zoom_in`, `zoom_out`, `pan_left`, `pan_right`).
 """
 
