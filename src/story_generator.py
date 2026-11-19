@@ -37,9 +37,10 @@ class StoryScene(BaseModel):
     )
     visual_prompt: str = Field(
         description=(
-            "Detailed English image generation prompt for this scene's action and pose. "
+            "Detailed English image generation prompt for this scene's action, dynamic pose, "
+            "and facial emotion in Walt Disney Animation Studios 3D feature film style. "
             "MUST repeat the protagonist's exact Character DNA (species, exact colors, "
-            "eyes, and exact clothing/accessory) word-for-word so all 6 scenes look identical."
+            "big expressive Disney eyes, and exact clothing/accessory) word-for-word so all 6 scenes look identical."
         )
     )
     camera_motion: Literal["zoom_in", "zoom_out", "pan_left", "pan_right"] = Field(
@@ -116,10 +117,10 @@ CRITICAL RULES YOU MUST FOLLOW:
    - Use simple, everyday words that a 5-year-old child or language learner immediately understands.
    - Avoid complex metaphors, rare adjectives, or long clauses.
    - Each scene's `narration` (English) and `narration_fr` (French) must be 38 to 48 words (~240-280 words total across 6 scenes).
-2. STRICT VISUAL CONSISTENCY ACROSS ALL 6 SCENES:
-   - Define a detailed `character_visual_anchor` (exact species, body shape, fur/skin color, eye color, and 1-2 distinctive clothing items with exact colors).
-   - Define a `world_visual_anchor` (consistent environment, lighting, and color palette).
-   - Every single scene's `visual_prompt` MUST copy the protagonist's exact physical description from `character_visual_anchor` so the image generator draws the exact same character in scenes 1 through 6.
+2. STRICT DISNEY ANIMATION VISUAL CONSISTENCY ACROSS ALL 6 SCENES:
+   - Define a detailed `character_visual_anchor` in classic Walt Disney Animation Studios 3D style (exact species, body shape, fur/skin color, big expressive glossy Disney eyes, and 1-2 distinctive clothing items with exact colors).
+   - Define a `world_visual_anchor` (magical Disney film environment, warm golden rim lighting, depth-of-field bokeh, and color palette).
+   - Every single scene's `visual_prompt` MUST copy the protagonist's exact physical description from `character_visual_anchor` and describe a clear, expressive animated pose and facial expression (smiling, wide-eyed wonder, determined, joyful) so the generator draws the exact same Disney character in scenes 1 through 6.
    - Never include text, letters, speech bubbles, or watermarks in `visual_prompt`.
 3. NEVER REPEAT PAST STORIES:
    - Invent a completely fresh protagonist, animal/magical/Mythical creature, name, setting, problem, and moral lesson that does NOT overlap with any story in the provided history blocklist.

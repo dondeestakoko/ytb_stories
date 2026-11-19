@@ -41,8 +41,9 @@ def _fetch_pollinations_image(prompt: str, width: int, height: int, seed: int) -
     using publisher/model IDs (`black-forest-labs/flux.1-schnell`, `tongyi-mai/z-image-turbo`).
     """
     clean_prompt = (
-        f"{prompt}, Pixar 3D storybook illustration, warm magical lighting, "
-        "vibrant colors, high detail, no text, no watermark"
+        f"{prompt}, Walt Disney Animation Studios 3D feature film render, "
+        "big expressive Disney eyes with glossy catchlights, warm golden magical rim lighting, "
+        "soft cinematic depth-of-field bokeh, vibrant Disney color grading, ultra-detailed, no text, no watermark"
     )
     encoded_prompt = urllib.parse.quote(clean_prompt, safe="")
 
@@ -167,10 +168,12 @@ def generate_scene_images(story_pkg: StoryPackage) -> List[SceneImages]:
 
     for scene in story_pkg.scenes:
         full_prompt = (
+            f"Walt Disney Animation Studios 3D movie frame. "
             f"Consistent character design: {story_pkg.character_visual_anchor}. "
             f"Consistent world & palette: {story_pkg.world_visual_anchor}. "
-            f"Current scene action: {scene.visual_prompt}. "
-            "Identical protagonist face, colors, and outfit, cute 3D Pixar storybook illustration"
+            f"Current scene action & emotion: {scene.visual_prompt}. "
+            "Identical protagonist face, big expressive Disney eyes, exact colors and outfit, "
+            "magical Disney lighting and cinematic depth of field"
         )
 
         yt_path = IMAGES_16X9_DIR / f"scene_{scene.scene_number}_16x9.png"
