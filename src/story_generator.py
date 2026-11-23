@@ -37,9 +37,10 @@ class StoryScene(BaseModel):
     )
     visual_prompt: str = Field(
         description=(
-            "Detailed English image generation prompt for this scene's action and pose. "
-            "MUST repeat the protagonist's exact Character DNA (species, exact colors, "
-            "eyes, and exact clothing/accessory) word-for-word so all 6 scenes look identical."
+            "Detailed English image generation prompt for this scene. "
+            "MUST START with the unique action, pose, and specific setting detail of this scene "
+            "(so each of the 6 scenes looks visibly different), followed by the protagonist's "
+            "exact Character DNA (species, colors, and signature outfit)."
         )
     )
     camera_motion: Literal["zoom_in", "zoom_out", "pan_left", "pan_right"] = Field(
@@ -116,10 +117,10 @@ CRITICAL RULES YOU MUST FOLLOW:
    - Use simple, everyday words that a 5-year-old child or language learner immediately understands.
    - Avoid complex metaphors, rare adjectives, or long clauses.
    - Each scene's `narration` (English) and `narration_fr` (French) must be 38 to 48 words (~240-280 words total across 6 scenes).
-2. STRICT VISUAL CONSISTENCY ACROSS ALL 6 SCENES:
+2. 6 VISIBLY DISTINCT SCENES WITH CONSISTENT CHARACTER DNA:
    - Define a detailed `character_visual_anchor` (exact species, body shape, fur/skin color, eye color, and 1-2 distinctive clothing items with exact colors).
    - Define a `world_visual_anchor` (consistent environment, lighting, and color palette).
-   - Every single scene's `visual_prompt` MUST copy the protagonist's exact physical description from `character_visual_anchor` so the image generator draws the exact same character in scenes 1 through 6.
+   - Every single scene's `visual_prompt` MUST START with the unique action, dynamic pose, and distinct scene Sub-location (so all 6 images look clearly different from each other!), and then include the protagonist's physical description from `character_visual_anchor`.
    - Never include text, letters, speech bubbles, or watermarks in `visual_prompt`.
 3. NEVER REPEAT PAST STORIES:
    - Invent a completely fresh protagonist, animal/magical/Mythical creature, name, setting, problem, and moral lesson that does NOT overlap with any story in the provided history blocklist.
